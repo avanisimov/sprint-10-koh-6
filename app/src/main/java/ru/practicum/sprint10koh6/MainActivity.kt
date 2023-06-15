@@ -1,101 +1,83 @@
 package ru.practicum.sprint10koh6
 
-import android.app.Activity
-import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
-import android.util.AttributeSet
-import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import ru.practicum.sprint10koh6.holder.ItemViewHolder
+import kotlin.random.Random
 
-class MainActivity : Activity() {
+class MainActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val myView = findViewById<MyView>(R.id.my_view)
+        val adapter = ItemsAdapter()
 
-        val inflater = LayoutInflater.from(this)
-        val adapter = Adapter(inflater)
-        myView.setUpContainer(
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+        val itemsRecyclerView = findViewById<RecyclerView>(R.id.items)
+        itemsRecyclerView.layoutManager = GridLayoutManager(this, 3).apply {
+            spanSizeLookup = object :SpanSizeLookup(){
+                override fun getSpanSize(position: Int): Int {
+                    return if (position % 4 == 0){
+                        3
+                    } else {
+                        1
+                    }
+                }
+
             }
-        )
-        myView.adapter = adapter
+        }
+        itemsRecyclerView.adapter = adapter
 
-
-        val items = (1..100).map {
-            "Item $it"
+        val items = (1..10).map {id ->
+            Item(
+                id = "id_$id",
+                color = Color.HSVToColor(
+                    arrayOf(Random.nextFloat().times(id*36), 1.0f, 1.0f).toFloatArray()
+                )
+            )
         }
 
-        myView.setItems(items)
-
+        adapter.setUpItems(items)
 
     }
 
 
 }
 
+data class Item(
+    val id: String,
+    val color: Int,
+)
 
-class MyView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet,
-) : ScrollView(context, attrs) {
+class ItemsAdapter : RecyclerView.Adapter<ItemViewHolder>() {
 
-    lateinit var adapter: Adapter
+    private var items: List<Item> = emptyList()
 
-    lateinit var itemsContainer: ViewGroup
-
-
-    fun setUpContainer(container: ViewGroup) {
-        itemsContainer = container
-        addView(itemsContainer)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
+        return ItemViewHolder(parent)
     }
 
+    override fun getItemCount(): Int {
+        return items.size
+    }
 
-    fun setItems(items: List<String>) {
-        val visibleItemsCount = 13
-        items.subList(0, visibleItemsCount).forEach { item: String ->
-            val child: View = adapter.adapt(itemsContainer, item)
-            itemsContainer.addView(child)
-        }
+    override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    fun setUpItems(items: List<Item>) {
+        this.items = items
+        notifyDataSetChanged()
     }
 
 }
 
 
-class Adapter(
-    private val inflater: LayoutInflater,
-) {
 
-    val viewsCache: MutableList<View> = mutableListOf()
-
-    fun adapt(
-        itemsContainer: ViewGroup,
-        item: String
-    ): View {
-        val child = if (viewsCache.isEmpty()) {
-            onCreateView(itemsContainer)
-        } else {
-            viewsCache.removeFirst()
-        }
-        onBindView(child, item)
-        return child
-    }
-
-    fun onCreateView(itemsContainer: ViewGroup): View {
-        return inflater.inflate(R.layout.v_item, itemsContainer, false)
-    }
-
-    fun onBindView(view: View, item: String) {
-        val textView = view as TextView
-        textView.text = item
-    }
-}
